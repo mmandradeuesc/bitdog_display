@@ -9,13 +9,14 @@
 #include "bitdogdisplay.pio.h"
 #include "ssd1306.h"
 #include "font.h"
+#include <stdio.h>
 
 #define NUM_PIXELS 25
 #define OUT_PIN 7
-#define UART_ID uart1
+// #define UART_ID uart0
 #define BAUD_RATE 115200
-#define UART_TX_PIN 2
-#define UART_RX_PIN 3
+// #define UART_TX_PIN 0
+// #define UART_RX_PIN 1
 #define BUTTON_A 5
 #define BUTTON_B 6
 #define LED_RED 13
@@ -126,9 +127,7 @@ const uint8_t number_patterns[10][25] = {
 
 // Função para enviar mensagem pela UART
 void send_uart_message(const char* message) {
-    uart_puts(UART_ID, message);
-    uart_puts(UART_ID, "\r\n");
-    sleep_ms(10); 
+    printf("%s\n", message);
 }
 
 // Função para atualizar o display OLED
@@ -172,20 +171,14 @@ void display_number(int num, PIO pio, uint sm, uint32_t color) {
 int main() {
     // Inicialização do stdio
     stdio_init_all();
+    sleep_ms(3000); // Delay para garantir que USB está pronto
 
+    printf("\n\nIniciando sistema...\n"); // Mensagem inicial de debug
+    
     // Configuração da UART
-    uart_init(UART_ID, BAUD_RATE);
-    uint actual_baud = uart_set_baudrate(UART_ID, BAUD_RATE);
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-    gpio_pull_up(UART_TX_PIN);
-    gpio_pull_up(UART_RX_PIN);
-
-    if (uart_is_enabled(UART_ID)) {
-    gpio_put(LED_GREEN, 1); // Acende LED verde se UART ok
-        } else {
-    gpio_put(LED_RED, 1);   // Acende LED vermelho se falhou
-        }
+    // uart_init(UART_ID, BAUD_RATE);
+    // gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
     // Inicialização I2C
     i2c_init(I2C_PORT, 400 * 1000);
@@ -193,6 +186,7 @@ int main() {
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
+    printf("I2C inicializado\n"); // Debug I2C
 
     // Inicialização do display OLED
     ssd1306_t ssd;
@@ -200,6 +194,7 @@ int main() {
     ssd1306_config(&ssd);
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
+    printf("Display OLED inicializado\n");
 
     // Configuração dos LEDs
     gpio_init(LED_RED);
@@ -234,23 +229,28 @@ int main() {
     bitdogdisplay_program_init(pio, sm, offset, OUT_PIN);
     
     // Mensagem inicial
-    update_display("Sistema Iniciado", &ssd);
-    send_uart_message("Sistema iniciado e pronto para receber comandos");
+    printf("Sistema pronto para receber comandos\n");
+    printf("Digite um numero de 0 a 9:\n");
+
 
     while (true) {
+        printf(".");  // Imprime um ponto a cada segundo
+        sleep_ms(1000);
         // Verifica entrada UART
-        if (uart_is_readable(UART_ID)) {
-            char c = uart_getc(UART_ID);
-            if (c >= '0' && c <= '9') {  // Ignora caracteres não numéricos
-                char display_text[2] = {c, '\0'};
+        int c = getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT) {
+            printf("\nCaractere recebido: %c (ASCII: %d)\n", (char)c, c);
+            
+            if (c >= '0' && c <= '9') {
+                printf("Numero valido recebido!\n");
+                char display_text[2] = {(char)c, '\0'};
                 
-                // Mostra o caractere no display
                 update_display(display_text, &ssd);
+                printf("Display atualizado\n");
                 
-                // Exibe o número na matriz de LEDs
                 int num = c - '0';
                 display_number(num, pio, sm, matrix_color);
-                send_uart_message("Numero recebido e exibido na matriz");
+                printf("Matriz atualizada com o numero: %d\n", num);
             }
         }
 
