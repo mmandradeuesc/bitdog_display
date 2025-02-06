@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = 'build/bitdogdisplay.uf2'
+elf = 'build/bitdogdisplay.elf'
