@@ -43,7 +43,7 @@ volatile bool blue_led_state = false;
 bool led_state = false;
 uint32_t matrix_color = 0x00FFFFFF;
 
-// Padrões numéricos corrigidos
+// Padrões numéricos
 const uint8_t number_patterns[10][25] = {
     {
         1, 1, 1, 1, 1,
